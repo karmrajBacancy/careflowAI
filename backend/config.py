@@ -43,7 +43,8 @@ class Settings:
         "http://127.0.0.1:5173",
         "http://localhost:5174",
         "http://127.0.0.1:5174",
-    ]
+        "https://careflow-ai-alpha.vercel.app",
+    ] + [o for o in os.getenv("EXTRA_CORS_ORIGINS", "").split(",") if o]
 
 
 settings = Settings()

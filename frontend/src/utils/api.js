@@ -2,7 +2,7 @@ import axios from 'axios'
 import { getToken, logout } from './auth'
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   timeout: 60000, // 60s for AI operations
   headers: { 'Content-Type': 'application/json' },
 })
