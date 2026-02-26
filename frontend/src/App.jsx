@@ -16,6 +16,13 @@ import LandingPage from './pages/marketing/LandingPage'
 import PricingPage from './pages/marketing/PricingPage'
 import AboutPage from './pages/marketing/AboutPage'
 import ContactPage from './pages/marketing/ContactPage'
+import IntegrationsPage from './pages/marketing/IntegrationsPage'
+import ChangelogPage from './pages/marketing/ChangelogPage'
+import BlogPage from './pages/marketing/BlogPage'
+import PrivacyPage from './pages/marketing/PrivacyPage'
+import TermsPage from './pages/marketing/TermsPage'
+import HipaaPage from './pages/marketing/HipaaPage'
+import BaaPage from './pages/marketing/BaaPage'
 
 function ProtectedRoute({ children }) {
   if (!isAuthenticated()) {
@@ -53,6 +60,13 @@ export default function App() {
       <Route path="/pricing" element={<MarketingLayout><PricingPage /></MarketingLayout>} />
       <Route path="/about" element={<MarketingLayout><AboutPage /></MarketingLayout>} />
       <Route path="/contact" element={<MarketingLayout><ContactPage /></MarketingLayout>} />
+      <Route path="/integrations" element={<MarketingLayout><IntegrationsPage /></MarketingLayout>} />
+      <Route path="/changelog" element={<MarketingLayout><ChangelogPage /></MarketingLayout>} />
+      <Route path="/blog" element={<MarketingLayout><BlogPage /></MarketingLayout>} />
+      <Route path="/privacy" element={<MarketingLayout><PrivacyPage /></MarketingLayout>} />
+      <Route path="/terms" element={<MarketingLayout><TermsPage /></MarketingLayout>} />
+      <Route path="/hipaa" element={<MarketingLayout><HipaaPage /></MarketingLayout>} />
+      <Route path="/baa" element={<MarketingLayout><BaaPage /></MarketingLayout>} />
 
       <Route path="/login" element={<Login />} />
 

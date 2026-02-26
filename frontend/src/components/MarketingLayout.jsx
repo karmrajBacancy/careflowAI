@@ -12,20 +12,20 @@ const footerLinks = {
   Product: [
     { label: 'Features', path: '/#features' },
     { label: 'Pricing', path: '/pricing' },
-    { label: 'Integrations', path: '/' },
-    { label: 'Changelog', path: '/' },
+    { label: 'Integrations', path: '/integrations' },
+    { label: 'Changelog', path: '/changelog' },
   ],
   Company: [
     { label: 'About', path: '/about' },
     { label: 'Careers', path: '/about' },
     { label: 'Contact', path: '/contact' },
-    { label: 'Blog', path: '/' },
+    { label: 'Blog', path: '/blog' },
   ],
   Legal: [
-    { label: 'Privacy Policy', path: '/' },
-    { label: 'Terms of Service', path: '/' },
-    { label: 'HIPAA Compliance', path: '/' },
-    { label: 'BAA', path: '/' },
+    { label: 'Privacy Policy', path: '/privacy' },
+    { label: 'Terms of Service', path: '/terms' },
+    { label: 'HIPAA Compliance', path: '/hipaa' },
+    { label: 'BAA', path: '/baa' },
   ],
 }
 
