@@ -1,0 +1,47 @@
+[
+  {
+    "name": "Maria Garcia",
+    "age": 40,
+    "sex": "F",
+    "chief_complaint": "Blood sugar running high",
+    "medical_history": ["Type 2 Diabetes", "Hypertension"],
+    "medications": ["Metformin 500mg BID", "Lisinopril 10mg daily"],
+    "allergies": ["Penicillin"]
+  },
+  {
+    "name": "James Chen",
+    "age": 53,
+    "sex": "M",
+    "chief_complaint": "Follow-up for coronary artery disease",
+    "medical_history": ["Coronary Artery Disease", "Hyperlipidemia", "GERD"],
+    "medications": ["Atorvastatin 40mg daily", "Aspirin 81mg daily", "Omeprazole 20mg daily"],
+    "allergies": ["Sulfa drugs", "Shellfish"]
+  },
+  {
+    "name": "Sarah Johnson",
+    "age": 35,
+    "sex": "F",
+    "chief_complaint": "Increased asthma symptoms",
+    "medical_history": ["Asthma", "Anxiety"],
+    "medications": ["Albuterol PRN", "Sertraline 50mg daily"],
+    "allergies": ["Latex"]
+  },
+  {
+    "name": "Robert Williams",
+    "age": 67,
+    "sex": "M",
+    "chief_complaint": "COPD exacerbation",
+    "medical_history": ["COPD", "Atrial Fibrillation", "Osteoarthritis"],
+    "medications": ["Tiotropium inhaler daily", "Warfarin 5mg daily"],
+    "allergies": ["Codeine", "Ibuprofen"]
+  },
+  {
+    "name": "Aisha Patel",
+    "age": 30,
+    "sex": "F",
+    "chief_complaint": "Frequent migraines",
+    "medical_history": ["Migraine"],
+    "medications": ["Sumatriptan 50mg PRN"],
+    "allergies": []
+  }
+]
