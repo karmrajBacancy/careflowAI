@@ -1,4 +1,305 @@
-import { Link } from 'react-router-dom'
+import { useState, useEffect, useCallback } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+
+const demoSlides = [
+  {
+    step: 1,
+    title: 'Dashboard',
+    description: 'Your clinical command center — see patients, stats, and tasks at a glance.',
+    render: () => (
+      <div className="space-y-3">
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { label: 'Patients Today', value: '24', color: 'from-primary-500 to-primary-600' },
+            { label: 'Notes Pending', value: '3', color: 'from-amber-400 to-orange-500' },
+            { label: 'Avg Wait Time', value: '8m', color: 'from-emerald-400 to-teal-500' },
+          ].map((c) => (
+            <div key={c.label} className={`bg-gradient-to-br ${c.color} rounded-xl p-3 text-white`}>
+              <div className="text-2xl font-bold">{c.value}</div>
+              <div className="text-xs opacity-80">{c.label}</div>
+            </div>
+          ))}
+        </div>
+        <div className="bg-white/10 backdrop-blur rounded-xl border border-white/10 p-3">
+          <div className="text-xs font-semibold text-gray-400 mb-2">Upcoming Patients</div>
+          {['Sarah M. — Follow-up', 'James K. — New Visit', 'Ana R. — Lab Review'].map((p, i) => (
+            <div key={i} className="flex items-center justify-between py-1.5 border-b border-white/5 last:border-0">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary-400 to-accent-400" />
+                <span className="text-sm text-gray-300">{p}</span>
+              </div>
+              <span className={`text-xs px-2 py-0.5 rounded-full ${i === 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-500/20 text-gray-400'}`}>
+                {i === 0 ? 'Now' : `${10 + i * 15}m`}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    ),
+  },
+  {
+    step: 2,
+    title: 'Record Encounter',
+    description: 'AI listens while you care — ambient recording captures every detail naturally.',
+    render: () => (
+      <div className="space-y-4">
+        <div className="flex items-center justify-center gap-3 py-4">
+          <span className="relative flex h-4 w-4">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500" />
+          </span>
+          <span className="text-red-400 font-semibold text-sm tracking-wide uppercase">Recording</span>
+          <span className="text-gray-500 text-sm ml-2">02:34</span>
+        </div>
+        <div className="flex items-center justify-center gap-[3px] h-16">
+          {Array.from({ length: 40 }).map((_, i) => (
+            <div
+              key={i}
+              className="w-1 rounded-full bg-gradient-to-t from-primary-500 to-accent-400"
+              style={{
+                height: `${12 + Math.sin(i * 0.5) * 20 + Math.random() * 24}px`,
+                opacity: 0.5 + Math.random() * 0.5,
+              }}
+            />
+          ))}
+        </div>
+        <div className="bg-white/5 rounded-xl border border-white/10 p-3 space-y-2">
+          <div className="text-xs text-gray-500">Live Transcript</div>
+          <p className="text-sm text-gray-300 leading-relaxed">
+            "...patient reports intermittent chest tightness for the past two weeks, primarily with exertion. No associated shortness of breath or diaphoresis..."
+          </p>
+          <div className="h-4 w-3/4 bg-white/5 rounded animate-pulse" />
+        </div>
+      </div>
+    ),
+  },
+  {
+    step: 3,
+    title: 'AI Clinical Notes',
+    description: 'SOAP notes generated in seconds — structured, coded, and ready to sign.',
+    render: () => (
+      <div className="space-y-2">
+        {[
+          { section: 'Subjective', color: 'bg-blue-500', text: 'Pt reports intermittent chest tightness x 2 weeks, worse with exertion. Denies SOB, diaphoresis.' },
+          { section: 'Objective', color: 'bg-emerald-500', text: 'BP 132/84, HR 78, RR 16. Cardiac: RRR, no murmurs. Lungs: CTA bilaterally.' },
+          { section: 'Assessment', color: 'bg-amber-500', text: 'Atypical chest pain (R07.9). Low-risk by HEART score. Consider stress test.' },
+          { section: 'Plan', color: 'bg-purple-500', text: 'Order exercise stress test, BMP, lipid panel. Follow up in 1 week.' },
+        ].map((s) => (
+          <div key={s.section} className="bg-white/5 rounded-lg border border-white/10 p-3">
+            <div className="flex items-center gap-2 mb-1">
+              <div className={`w-2 h-2 rounded-full ${s.color}`} />
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{s.section}</span>
+            </div>
+            <p className="text-sm text-gray-300 leading-relaxed">{s.text}</p>
+          </div>
+        ))}
+      </div>
+    ),
+  },
+  {
+    step: 4,
+    title: 'Virtual Nurse',
+    description: '24/7 AI triage assistant — answers patient questions and escalates when needed.',
+    render: () => (
+      <div className="space-y-3 max-w-sm mx-auto">
+        {[
+          { from: 'patient', text: "I've had a headache for 3 days and some blurry vision." },
+          { from: 'ai', text: "I'm sorry to hear that. Let me ask a few questions to help assess this. On a scale of 1–10, how severe is your headache?" },
+          { from: 'patient', text: "About a 7. It's mostly behind my eyes." },
+          { from: 'ai', text: "Thank you. Given the duration and visual symptoms, I recommend scheduling an urgent visit. I've flagged this for your care team.", flag: true },
+        ].map((m, i) => (
+          <div key={i} className={`flex ${m.from === 'patient' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+              m.from === 'patient'
+                ? 'bg-primary-600 text-white rounded-br-md'
+                : 'bg-white/10 text-gray-300 border border-white/10 rounded-bl-md'
+            }`}>
+              {m.text}
+              {m.flag && (
+                <div className="mt-2 flex items-center gap-1.5 text-xs text-amber-400 font-medium">
+                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.168 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" /></svg>
+                  Escalated to provider
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    ),
+  },
+  {
+    step: 5,
+    title: 'Nurse Dashboard',
+    description: 'Real-time team monitoring — alerts, tasks, and shift handoffs in one place.',
+    render: () => (
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { label: 'Active Patients', value: '18', icon: '👥' },
+            { label: 'Pending Tasks', value: '7', icon: '📋' },
+          ].map((c) => (
+            <div key={c.label} className="bg-white/5 border border-white/10 rounded-xl p-3 flex items-center gap-3">
+              <span className="text-xl">{c.icon}</span>
+              <div>
+                <div className="text-lg font-bold text-white">{c.value}</div>
+                <div className="text-xs text-gray-400">{c.label}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+          <div className="text-xs font-semibold text-gray-400 mb-2">Priority Alerts</div>
+          {[
+            { text: 'Room 4 — Vitals overdue', level: 'bg-red-500/20 text-red-400' },
+            { text: 'Room 7 — Med due in 10 min', level: 'bg-amber-500/20 text-amber-400' },
+            { text: 'Room 2 — Discharge ready', level: 'bg-emerald-500/20 text-emerald-400' },
+          ].map((a, i) => (
+            <div key={i} className={`text-xs px-3 py-2 rounded-lg mb-1.5 last:mb-0 ${a.level}`}>{a.text}</div>
+          ))}
+        </div>
+        <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+          <div className="text-xs font-semibold text-gray-400 mb-2">Task List</div>
+          {['Administer IV antibiotics — Rm 3', 'Update care plan — Rm 5', 'Patient education — Rm 8'].map((t, i) => (
+            <div key={i} className="flex items-center gap-2 py-1.5 text-sm text-gray-300 border-b border-white/5 last:border-0">
+              <div className={`w-4 h-4 rounded border ${i === 0 ? 'bg-primary-500 border-primary-500' : 'border-gray-600'} flex items-center justify-center`}>
+                {i === 0 && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+              </div>
+              <span className={i === 0 ? 'line-through text-gray-500' : ''}>{t}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    ),
+  },
+]
+
+function DemoModal({ open, onClose }) {
+  const navigate = useNavigate()
+  const [current, setCurrent] = useState(0)
+  const [paused, setPaused] = useState(false)
+
+  const goTo = useCallback((i) => {
+    setCurrent(i)
+    setPaused(true)
+  }, [])
+
+  const next = useCallback(() => {
+    setCurrent((prev) => Math.min(prev + 1, demoSlides.length - 1))
+    setPaused(true)
+  }, [])
+
+  const prev = useCallback(() => {
+    setCurrent((prev) => Math.max(prev - 1, 0))
+    setPaused(true)
+  }, [])
+
+  // Auto-advance every 4s unless paused
+  useEffect(() => {
+    if (!open || paused || current >= demoSlides.length - 1) return
+    const timer = setInterval(() => {
+      setCurrent((prev) => {
+        if (prev >= demoSlides.length - 1) { clearInterval(timer); return prev }
+        return prev + 1
+      })
+    }, 4000)
+    return () => clearInterval(timer)
+  }, [open, paused, current])
+
+  // Escape key closes
+  useEffect(() => {
+    if (!open) return
+    const handler = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [open, onClose])
+
+  // Reset on open
+  useEffect(() => {
+    if (open) { setCurrent(0); setPaused(false) }
+  }, [open])
+
+  if (!open) return null
+
+  const slide = demoSlides[current]
+  const isLast = current === demoSlides.length - 1
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in" onClick={onClose}>
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+
+      {/* Modal */}
+      <div
+        className="relative w-full max-w-4xl glass-card bg-gray-900/90 border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+          <h2 className="text-lg font-bold text-white">
+            CareFlow AI — <span className="gradient-text">Product Tour</span>
+          </h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors p-1">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6">
+          {/* Step badge + title */}
+          <div className="flex items-center gap-3 mb-2">
+            <span className="badge-indigo badge text-xs">Step {slide.step} / {demoSlides.length}</span>
+            <h3 className="text-xl font-bold text-white">{slide.title}</h3>
+          </div>
+          <p className="text-sm text-gray-400 mb-5">{slide.description}</p>
+
+          {/* Mock UI */}
+          <div className="bg-gray-800/60 rounded-xl border border-white/5 p-4 min-h-[260px]">
+            {slide.render()}
+          </div>
+        </div>
+
+        {/* Controls */}
+        <div className="flex items-center justify-between px-6 py-4 border-t border-white/10">
+          <button
+            onClick={prev}
+            disabled={current === 0}
+            className="btn-secondary px-4 py-2 text-sm disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            Prev
+          </button>
+
+          {/* Dots */}
+          <div className="flex items-center gap-2">
+            {demoSlides.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => goTo(i)}
+                className={`w-2.5 h-2.5 rounded-full transition-all ${
+                  i === current ? 'bg-primary-500 scale-125' : 'bg-gray-600 hover:bg-gray-400'
+                }`}
+              />
+            ))}
+          </div>
+
+          {isLast ? (
+            <button
+              onClick={() => { onClose(); navigate('/login') }}
+              className="btn-primary px-5 py-2 text-sm"
+            >
+              Get Started Free
+            </button>
+          ) : (
+            <button onClick={next} className="btn-primary px-4 py-2 text-sm">
+              Next
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 const features = [
   {
@@ -89,6 +390,8 @@ const testimonials = [
 ]
 
 export default function LandingPage() {
+  const [demoOpen, setDemoOpen] = useState(false)
+
   return (
     <div className="overflow-hidden">
       {/* Hero */}
@@ -111,7 +414,7 @@ export default function LandingPage() {
             <Link to="/login" className="btn-primary px-8 py-3 text-base">
               Get Started Free
             </Link>
-            <button className="btn-secondary px-8 py-3 text-base flex items-center gap-2">
+            <button onClick={() => setDemoOpen(true)} className="btn-secondary px-8 py-3 text-base flex items-center gap-2">
               <svg className="w-5 h-5 text-primary-600" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>
@@ -240,6 +543,8 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      <DemoModal open={demoOpen} onClose={() => setDemoOpen(false)} />
     </div>
   )
 }
