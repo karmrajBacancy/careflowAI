@@ -14,8 +14,8 @@ export default function SuperAdminSidebar() {
       {/* Header */}
       <div className="bg-gradient-to-br from-primary-700 via-primary-600 to-accent-600 p-5">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-white/20 backdrop-blur rounded-lg flex items-center justify-center">
-            <img src="/logo.svg" alt="CareFlow AI" className="w-6 h-6" />
+          <div className="w-11 h-11 rounded-lg flex items-center justify-center">
+            <img src="/logo.svg" alt="CareFlow AI" className="w-11 h-11 rounded-lg" />
           </div>
           <div>
             <h1 className="text-base font-bold text-white tracking-tight">CareFlow AI</h1>
