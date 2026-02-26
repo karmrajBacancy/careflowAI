@@ -54,8 +54,10 @@ def _ensure_default_admin():
 async def lifespan(app: FastAPI):
     """Application startup and shutdown."""
     logger.info("Starting CareFlow AI v%s", settings.VERSION)
+    db_display = settings.DATABASE_URL.split("@")[-1] if "@" in settings.DATABASE_URL else settings.DATABASE_URL
+    logger.info("Connecting to database: %s", db_display)
     init_db()
-    logger.info("Database initialized")
+    logger.info("Database initialized successfully")
     _ensure_default_admin()
 
     if not settings.ANTHROPIC_API_KEY:

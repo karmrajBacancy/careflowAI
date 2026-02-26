@@ -23,10 +23,12 @@ class Settings:
     WHISPER_COMPUTE_TYPE: str = os.getenv("WHISPER_COMPUTE_TYPE", "int8")
 
     # Database
-    DATABASE_URL: str = os.getenv(
+    _raw_db_url: str = os.getenv(
         "DATABASE_URL",
         f"sqlite:///{Path(__file__).resolve().parent / 'database' / 'careflow.db'}",
     )
+    # Render/Heroku use postgres:// but SQLAlchemy requires postgresql://
+    DATABASE_URL: str = _raw_db_url.replace("postgres://", "postgresql://", 1) if _raw_db_url.startswith("postgres://") else _raw_db_url
 
     # Audio
     UPLOAD_DIR: Path = Path(__file__).resolve().parent / "uploads"
