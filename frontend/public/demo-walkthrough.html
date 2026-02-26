@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CareFlow AI — Animated Product Walkthrough</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --primary: #4F46E5;
+    --primary-light: #818CF8;
+    --accent: #06B6D4;
+    --dark: #0F172A;
+    --gray: #64748B;
+    --light: #F8FAFC;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--dark);
+    color: #fff;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  /* Slide container */
+  .slideshow {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    opacity: 0;
+    transform: scale(0.95);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+    pointer-events: none;
+  }
+  .slide.active {
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
+  }
+
+  /* Narration bar */
+  .narration {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, rgba(15,23,42,0.97), rgba(15,23,42,0.8));
+    backdrop-filter: blur(20px);
+    padding: 20px 40px;
+    z-index: 100;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .narration-text {
+    font-size: 17px;
+    line-height: 1.6;
+    color: #CBD5E1;
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .narration-text em {
+    color: #818CF8;
+    font-style: normal;
+    font-weight: 600;
+  }
+
+  /* Progress bar */
+  .progress-track {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: rgba(255,255,255,0.06);
+    z-index: 200;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    width: 0%;
+    transition: width 0.5s ease;
+  }
+
+  /* Controls */
+  .controls {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    z-index: 100;
+  }
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .dot.active {
+    background: var(--primary-light);
+    transform: scale(1.3);
+    box-shadow: 0 0 12px rgba(129,140,248,0.5);
+  }
+  .nav-btn {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #fff;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+  }
+  .nav-btn:hover { background: rgba(255,255,255,0.15); }
+  .nav-btn.prev { left: 24px; }
+  .nav-btn.next { right: 24px; }
+
+  /* Step label */
+  .step-label {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    padding: 6px 20px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    z-index: 100;
+  }
+
+  /* Slide internals */
+  .slide-title {
+    font-size: clamp(28px, 5vw, 52px);
+    font-weight: 800;
+    text-align: center;
+    margin-bottom: 16px;
+    line-height: 1.15;
+  }
+  .gradient { background: linear-gradient(135deg, var(--primary-light), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+  .slide-sub {
+    font-size: 18px;
+    color: var(--gray);
+    text-align: center;
+    max-width: 600px;
+    line-height: 1.6;
+    margin-bottom: 32px;
+  }
+
+  /* Mock browser */
+  .browser {
+    width: min(90vw, 800px);
+    background: #1E293B;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+  }
+  .browser-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: #0F172A;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .browser-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .browser-dot.r { background: #EF4444; }
+  .browser-dot.y { background: #EAB308; }
+  .browser-dot.g { background: #22C55E; }
+  .browser-url {
+    flex: 1;
+    margin-left: 12px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    color: var(--gray);
+  }
+  .browser-body {
+    padding: 24px;
+    min-height: 300px;
+  }
+
+  /* Mock cards */
+  .mock-grid { display: grid; gap: 12px; }
+  .mock-grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .mock-grid-2 { grid-template-columns: repeat(2, 1fr); }
+  .mock-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .mock-card-value {
+    font-size: 28px;
+    font-weight: 800;
+  }
+  .mock-card-label {
+    font-size: 11px;
+    color: var(--gray);
+    margin-top: 2px;
+  }
+  .mock-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    font-size: 13px;
+    color: #94A3B8;
+  }
+  .mock-row:last-child { border-bottom: none; }
+  .mock-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    margin-right: 10px;
+    flex-shrink: 0;
+  }
+  .mock-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 100px;
+  }
+  .badge-green { background: rgba(34,197,94,0.15); color: #4ADE80; }
+  .badge-amber { background: rgba(234,179,8,0.15); color: #FACC15; }
+  .badge-red { background: rgba(239,68,68,0.15); color: #F87171; }
+
+  /* Recording */
+  .rec-dot {
+    width: 14px; height: 14px; border-radius: 50%; background: #EF4444;
+    animation: pulse-rec 1.5s infinite;
+  }
+  @keyframes pulse-rec {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.6); }
+    50% { box-shadow: 0 0 0 10px rgba(239,68,68,0); }
+  }
+  .waveform { display: flex; align-items: center; gap: 3px; height: 50px; justify-content: center; }
+  .wave-bar {
+    width: 4px;
+    border-radius: 4px;
+    background: linear-gradient(to top, var(--primary), var(--accent));
+    animation: wave 1.2s ease-in-out infinite;
+  }
+  @keyframes wave {
+    0%, 100% { transform: scaleY(0.4); }
+    50% { transform: scaleY(1); }
+  }
+
+  /* Chat bubbles */
+  .chat-bubble {
+    max-width: 80%;
+    padding: 10px 14px;
+    border-radius: 16px;
+    font-size: 13px;
+    line-height: 1.5;
+    margin-bottom: 10px;
+  }
+  .chat-patient {
+    background: var(--primary);
+    margin-left: auto;
+    border-bottom-right-radius: 4px;
+  }
+  .chat-ai {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-bottom-left-radius: 4px;
+    color: #CBD5E1;
+  }
+
+  /* SOAP */
+  .soap-section {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+  }
+  .soap-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .soap-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+  }
+  .soap-text { font-size: 12px; color: #94A3B8; line-height: 1.5; }
+
+  /* Alerts */
+  .alert-row {
+    font-size: 12px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    margin-bottom: 6px;
+  }
+
+  /* Features grid */
+  .feat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; max-width: 700px; }
+  .feat-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+  }
+  .feat-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: linear-gradient(135deg, rgba(79,70,229,0.2), rgba(6,182,212,0.2));
+    margin: 0 auto 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .feat-name { font-size: 13px; font-weight: 600; }
+  .feat-desc { font-size: 11px; color: var(--gray); margin-top: 4px; }
+
+  /* Stats row */
+  .stats-row { display: flex; gap: 32px; justify-content: center; margin-top: 24px; }
+  .stat-item { text-align: center; }
+  .stat-value { font-size: 32px; font-weight: 800; background: linear-gradient(135deg, var(--primary-light), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .stat-label { font-size: 12px; color: var(--gray); }
+
+  /* CTA slide */
+  .cta-btn {
+    display: inline-block;
+    padding: 14px 40px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    border-radius: 12px;
+    text-decoration: none;
+    margin-top: 8px;
+    transition: transform 0.3s, box-shadow 0.3s;
+    border: none;
+    cursor: pointer;
+  }
+  .cta-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(79,70,229,0.4);
+  }
+
+  /* Animate children */
+  .slide.active .anim-up {
+    animation: slideUp 0.6s ease forwards;
+  }
+  .slide.active .anim-up-d1 { animation-delay: 0.1s; }
+  .slide.active .anim-up-d2 { animation-delay: 0.25s; }
+  .slide.active .anim-up-d3 { animation-delay: 0.4s; }
+  .slide.active .anim-up-d4 { animation-delay: 0.55s; }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .anim-up { opacity: 0; }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    .mock-grid-3 { grid-template-columns: 1fr; }
+    .feat-grid { grid-template-columns: repeat(2, 1fr); }
+    .stats-row { flex-wrap: wrap; gap: 16px; }
+    .browser-body { padding: 14px; }
+    .narration { padding: 14px 20px; }
+    .narration-text { font-size: 14px; }
+    .controls { bottom: 78px; }
+  }
+
+  /* Typing effect */
+  .typing::after {
+    content: '|';
+    animation: blink 0.8s infinite;
+  }
+  @keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress-track"><div class="progress-fill" id="progress"></div></div>
+<div class="step-label" id="stepLabel">1 / 10</div>
+
+<button class="nav-btn prev" onclick="goSlide(current-1)">&#8249;</button>
+<button class="nav-btn next" onclick="goSlide(current+1)">&#8250;</button>
+
+<div class="controls" id="dots"></div>
+
+<div class="slideshow" id="slideshow">
+
+  <!-- Slide 0: Title -->
+  <div class="slide active" data-narration="Welcome to <em>CareFlow AI</em> — the AI-powered clinical intelligence platform that's transforming how healthcare teams document, triage, and manage patient care.">
+    <div class="anim-up" style="margin-bottom:12px">
+      <svg width="80" height="80" viewBox="0 0 200 200">
+        <defs><linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#4F46E5"/><stop offset="100%" stop-color="#06B6D4"/></linearGradient></defs>
+        <rect width="200" height="200" rx="40" fill="url(#g1)"/>
+        <path d="M40 120 L60 120 L70 80 L85 140 L100 60 L115 130 L125 95 L140 120 L160 120" stroke="#fff" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+        <circle cx="148" cy="68" r="6" fill="#fff" opacity="0.8"/><circle cx="162" cy="56" r="4" fill="#fff" opacity="0.6"/><circle cx="155" cy="45" r="3" fill="#fff" opacity="0.4"/>
+      </svg>
+    </div>
+    <h1 class="slide-title anim-up anim-up-d1">CareFlow <span class="gradient">AI</span></h1>
+    <p class="slide-sub anim-up anim-up-d2">AI-Powered Clinical Intelligence for Modern Healthcare</p>
+    <div class="stats-row anim-up anim-up-d3">
+      <div class="stat-item"><div class="stat-value">500+</div><div class="stat-label">Providers</div></div>
+      <div class="stat-item"><div class="stat-value">98%</div><div class="stat-label">Accuracy</div></div>
+      <div class="stat-item"><div class="stat-value">10 min</div><div class="stat-label">Saved / Visit</div></div>
+      <div class="stat-item"><div class="stat-value">HIPAA</div><div class="stat-label">Compliant</div></div>
+    </div>
+  </div>
+
+  <!-- Slide 1: Platform Overview -->
+  <div class="slide" data-narration="CareFlow AI offers <em>six core features</em> — from ambient documentation and AI clinical notes to virtual nurse triage and a real-time nursing dashboard.">
+    <h2 class="slide-title anim-up" style="font-size:clamp(24px,4vw,38px)">Everything Your Practice <span class="gradient">Needs</span></h2>
+    <p class="slide-sub anim-up anim-up-d1" style="font-size:15px">Six powerful features — one seamless platform</p>
+    <div class="feat-grid anim-up anim-up-d2">
+      <div class="feat-card"><div class="feat-icon">🎙</div><div class="feat-name">Ambient Docs</div><div class="feat-desc">Record naturally</div></div>
+      <div class="feat-card"><div class="feat-icon">📋</div><div class="feat-name">AI Notes</div><div class="feat-desc">SOAP in seconds</div></div>
+      <div class="feat-card"><div class="feat-icon">💬</div><div class="feat-name">Virtual Nurse</div><div class="feat-desc">24/7 AI triage</div></div>
+      <div class="feat-card"><div class="feat-icon">⚡</div><div class="feat-name">Smart Triage</div><div class="feat-desc">Auto-classify urgency</div></div>
+      <div class="feat-card"><div class="feat-icon">👤</div><div class="feat-name">Patient Intake</div><div class="feat-desc">Digital forms</div></div>
+      <div class="feat-card"><div class="feat-icon">📊</div><div class="feat-name">Nurse Dashboard</div><div class="feat-desc">Team monitoring</div></div>
+    </div>
+  </div>
+
+  <!-- Slide 2: Dashboard -->
+  <div class="slide" data-narration="The <em>Clinical Dashboard</em> is your command center. At a glance, see today's patients, pending notes, and wait times — all in real time.">
+    <h2 class="slide-title anim-up" style="font-size:clamp(22px,3.5vw,34px)">Clinical <span class="gradient">Dashboard</span></h2>
+    <div class="browser anim-up anim-up-d1">
+      <div class="browser-bar">
+        <div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div>
+        <div class="browser-url">careflow-ai-alpha.vercel.app/dashboard</div>
+      </div>
+      <div class="browser-body">
+        <div class="mock-grid mock-grid-3" style="margin-bottom:16px">
+          <div class="mock-card"><div class="mock-card-value" style="color:#818CF8">24</div><div class="mock-card-label">Patients Today</div></div>
+          <div class="mock-card"><div class="mock-card-value" style="color:#FACC15">3</div><div class="mock-card-label">Notes Pending</div></div>
+          <div class="mock-card"><div class="mock-card-value" style="color:#34D399">8m</div><div class="mock-card-label">Avg Wait Time</div></div>
+        </div>
+        <div class="mock-card">
+          <div style="font-size:11px;color:#64748B;margin-bottom:8px;font-weight:600">Upcoming Patients</div>
+          <div class="mock-row"><span style="display:flex;align-items:center"><span class="mock-avatar"></span>Sarah M. — Follow-up</span><span class="mock-badge badge-green">Now</span></div>
+          <div class="mock-row"><span style="display:flex;align-items:center"><span class="mock-avatar"></span>James K. — New Visit</span><span class="mock-badge" style="background:rgba(255,255,255,0.06);color:#94A3B8">25m</span></div>
+          <div class="mock-row"><span style="display:flex;align-items:center"><span class="mock-avatar"></span>Ana R. — Lab Review</span><span class="mock-badge" style="background:rgba(255,255,255,0.06);color:#94A3B8">40m</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 3: Recording -->
+  <div class="slide" data-narration="Start a patient encounter and <em>CareFlow AI listens</em>. Ambient recording captures the conversation and provides a live transcript — so you can focus entirely on the patient.">
+    <h2 class="slide-title anim-up" style="font-size:clamp(22px,3.5vw,34px)">Ambient <span class="gradient">Recording</span></h2>
+    <div class="browser anim-up anim-up-d1">
+      <div class="browser-bar">
+        <div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div>
+        <div class="browser-url">careflow-ai-alpha.vercel.app/dashboard/recorder</div>
+      </div>
+      <div class="browser-body" style="text-align:center">
+        <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:20px">
+          <div class="rec-dot"></div>
+          <span style="color:#F87171;font-weight:600;font-size:14px;text-transform:uppercase;letter-spacing:1px">Recording</span>
+          <span style="color:#64748B;font-size:14px;margin-left:8px">02:34</span>
+        </div>
+        <div class="waveform" id="waveform"></div>
+        <div class="mock-card" style="margin-top:20px;text-align:left">
+          <div style="font-size:11px;color:#64748B;margin-bottom:6px">Live Transcript</div>
+          <p style="font-size:13px;color:#94A3B8;line-height:1.6">"...patient reports intermittent chest tightness for the past two weeks, primarily with exertion. No associated shortness of breath or diaphoresis..."</p>
+          <div style="height:14px;width:60%;background:rgba(255,255,255,0.04);border-radius:4px;margin-top:8px;animation:pulse 2s infinite"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 4: SOAP Notes -->
+  <div class="slide" data-narration="Within seconds, the AI generates a complete <em>SOAP note</em> — Subjective, Objective, Assessment, and Plan — with ICD-10 and CPT codes. Ready for review and sign-off.">
+    <h2 class="slide-title anim-up" style="font-size:clamp(22px,3.5vw,34px)">AI Clinical <span class="gradient">Notes</span></h2>
+    <div class="browser anim-up anim-up-d1">
+      <div class="browser-bar">
+        <div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div>
+        <div class="browser-url">careflow-ai-alpha.vercel.app/dashboard/notes/1234</div>
+      </div>
+      <div class="browser-body">
+        <div class="soap-section"><div class="soap-label"><span class="soap-dot" style="background:#3B82F6"></span><span style="color:#64748B">Subjective</span></div><div class="soap-text">Pt reports intermittent chest tightness x 2 weeks, worse with exertion. Denies SOB, diaphoresis, syncope. No FHx of early CAD.</div></div>
+        <div class="soap-section"><div class="soap-label"><span class="soap-dot" style="background:#10B981"></span><span style="color:#64748B">Objective</span></div><div class="soap-text">BP 132/84, HR 78, RR 16, SpO2 98%. Cardiac: RRR, no murmurs/gallops. Lungs: CTA bilaterally. No peripheral edema.</div></div>
+        <div class="soap-section"><div class="soap-label"><span class="soap-dot" style="background:#F59E0B"></span><span style="color:#64748B">Assessment</span></div><div class="soap-text">Atypical chest pain (ICD-10: R07.9). Low-risk by HEART score. Consider exercise stress test to evaluate.</div></div>
+        <div class="soap-section"><div class="soap-label"><span class="soap-dot" style="background:#8B5CF6"></span><span style="color:#64748B">Plan</span></div><div class="soap-text">Order exercise stress test, BMP, lipid panel. ASA 81mg daily. Follow up in 1 week. Return precautions given.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 5: Virtual Nurse -->
+  <div class="slide" data-narration="The <em>Virtual Nurse</em> acts as a 24/7 AI triage assistant. Patients describe symptoms and the AI assesses urgency — escalating to a provider when needed.">
+    <h2 class="slide-title anim-up" style="font-size:clamp(22px,3.5vw,34px)">Virtual <span class="gradient">Nurse</span></h2>
+    <div class="browser anim-up anim-up-d1">
+      <div class="browser-bar">
+        <div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div>
+        <div class="browser-url">careflow-ai-alpha.vercel.app/dashboard/nurse</div>
+      </div>
+      <div class="browser-body" style="max-width:420px;margin:0 auto">
+        <div class="chat-bubble chat-patient">I've had a headache for 3 days and some blurry vision.</div>
+        <div class="chat-bubble chat-ai">I'm sorry to hear that. Let me ask a few questions. On a scale of 1–10, how severe is your headache?</div>
+        <div class="chat-bubble chat-patient">About a 7. It's mostly behind my eyes.</div>
+        <div class="chat-bubble chat-ai">
+          Thank you. Given the duration and visual symptoms, I recommend scheduling an urgent visit. I've flagged this for your care team.
+          <div style="margin-top:8px;font-size:11px;color:#FACC15;font-weight:600;display:flex;align-items:center;gap:4px">⚠ Escalated to provider</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 6: Nurse Dashboard -->
+  <div class="slide" data-narration="The <em>Nurse Dashboard</em> gives nursing teams real-time visibility — priority alerts, task lists, and patient status updates for seamless shift management.">
+    <h2 class="slide-title anim-up" style="font-size:clamp(22px,3.5vw,34px)">Nurse <span class="gradient">Dashboard</span></h2>
+    <div class="browser anim-up anim-up-d1">
+      <div class="browser-bar">
+        <div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div>
+        <div class="browser-url">careflow-ai-alpha.vercel.app/dashboard/nurse-dashboard</div>
+      </div>
+      <div class="browser-body">
+        <div class="mock-grid mock-grid-2" style="margin-bottom:14px">
+          <div class="mock-card" style="display:flex;align-items:center;gap:12px"><span style="font-size:22px">👥</span><div><div class="mock-card-value" style="font-size:22px;color:#fff">18</div><div class="mock-card-label">Active Patients</div></div></div>
+          <div class="mock-card" style="display:flex;align-items:center;gap:12px"><span style="font-size:22px">📋</span><div><div class="mock-card-value" style="font-size:22px;color:#fff">7</div><div class="mock-card-label">Pending Tasks</div></div></div>
+        </div>
+        <div class="mock-card" style="margin-bottom:12px">
+          <div style="font-size:11px;color:#64748B;margin-bottom:8px;font-weight:600">Priority Alerts</div>
+          <div class="alert-row badge-red">Room 4 — Vitals overdue</div>
+          <div class="alert-row badge-amber">Room 7 — Med due in 10 min</div>
+          <div class="alert-row badge-green">Room 2 — Discharge ready</div>
+        </div>
+        <div class="mock-card">
+          <div style="font-size:11px;color:#64748B;margin-bottom:8px;font-weight:600">Task List</div>
+          <div class="mock-row" style="color:#64748B;text-decoration:line-through">✓ Administer IV antibiotics — Rm 3</div>
+          <div class="mock-row">◻ Update care plan — Rm 5</div>
+          <div class="mock-row">◻ Patient education — Rm 8</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 7: How it works -->
+  <div class="slide" data-narration="The workflow is simple — <em>three steps</em>. Record the encounter, let AI generate the notes, then review and sign. Documentation that used to take 30 minutes now takes 3.">
+    <h2 class="slide-title anim-up" style="font-size:clamp(22px,3.5vw,34px)">Three Simple <span class="gradient">Steps</span></h2>
+    <div class="anim-up anim-up-d1" style="display:flex;gap:24px;align-items:start;max-width:700px;margin-top:16px;flex-wrap:wrap;justify-content:center">
+      <div style="text-align:center;flex:1;min-width:180px">
+        <div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;font-size:22px;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">1</div>
+        <div style="font-size:16px;font-weight:700;margin-bottom:4px">Record</div>
+        <div style="font-size:12px;color:var(--gray)">Start ambient recording during the patient encounter.</div>
+      </div>
+      <div style="color:#334155;font-size:28px;margin-top:20px">→</div>
+      <div style="text-align:center;flex:1;min-width:180px">
+        <div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;font-size:22px;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">2</div>
+        <div style="font-size:16px;font-weight:700;margin-bottom:4px">AI Generates</div>
+        <div style="font-size:12px;color:var(--gray)">Structured clinical notes with ICD-10 & CPT codes in seconds.</div>
+      </div>
+      <div style="color:#334155;font-size:28px;margin-top:20px">→</div>
+      <div style="text-align:center;flex:1;min-width:180px">
+        <div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;font-size:22px;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">3</div>
+        <div style="font-size:16px;font-weight:700;margin-bottom:4px">Review & Sign</div>
+        <div style="font-size:12px;color:var(--gray)">Edit if needed and sign off — documentation complete.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 8: Testimonials -->
+  <div class="slide" data-narration="Clinicians love CareFlow AI. Dr. Sarah Chen says it <em>cut her documentation time in half</em>. Nurse Manager Maria Gonzalez says shift handoffs are now seamless.">
+    <h2 class="slide-title anim-up" style="font-size:clamp(22px,3.5vw,34px)">Loved by <span class="gradient">Clinicians</span></h2>
+    <div class="anim-up anim-up-d1" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;max-width:750px;margin-top:8px">
+      <div class="mock-card">
+        <div style="font-size:28px;color:rgba(129,140,248,0.3);margin-bottom:8px">"</div>
+        <p style="font-size:13px;color:#94A3B8;line-height:1.6;font-style:italic;margin-bottom:12px">CareFlow AI cut my documentation time in half. I actually get to leave the office on time now.</p>
+        <div style="font-size:13px;font-weight:600">Dr. Sarah Chen</div>
+        <div style="font-size:11px;color:var(--gray)">Family Medicine, Valley Health</div>
+      </div>
+      <div class="mock-card">
+        <div style="font-size:28px;color:rgba(129,140,248,0.3);margin-bottom:8px">"</div>
+        <p style="font-size:13px;color:#94A3B8;line-height:1.6;font-style:italic;margin-bottom:12px">The ambient recording is incredible — it captures details I used to miss.</p>
+        <div style="font-size:13px;font-weight:600">Dr. James Okafor</div>
+        <div style="font-size:11px;color:var(--gray)">Internal Medicine, Metro Clinic</div>
+      </div>
+      <div class="mock-card">
+        <div style="font-size:28px;color:rgba(129,140,248,0.3);margin-bottom:8px">"</div>
+        <p style="font-size:13px;color:#94A3B8;line-height:1.6;font-style:italic;margin-bottom:12px">Our nursing team loves the dashboard. Nothing falls through the cracks.</p>
+        <div style="font-size:13px;font-weight:600">Maria Gonzalez, RN</div>
+        <div style="font-size:11px;color:var(--gray)">Nurse Manager, Summit Hospital</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 9: CTA -->
+  <div class="slide" data-narration="Ready to transform your practice? <em>Get started free</em> — join 500+ providers who spend less time on paperwork and more time with patients.">
+    <div class="anim-up" style="margin-bottom:12px">
+      <svg width="64" height="64" viewBox="0 0 200 200">
+        <defs><linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#4F46E5"/><stop offset="100%" stop-color="#06B6D4"/></linearGradient></defs>
+        <rect width="200" height="200" rx="40" fill="url(#g2)"/>
+        <path d="M40 120 L60 120 L70 80 L85 140 L100 60 L115 130 L125 95 L140 120 L160 120" stroke="#fff" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+      </svg>
+    </div>
+    <h2 class="slide-title anim-up anim-up-d1">Ready to <span class="gradient">Transform</span> Your Practice?</h2>
+    <p class="slide-sub anim-up anim-up-d2">Join 500+ providers who spend less time on paperwork and more time with patients.</p>
+    <a href="https://careflow-ai-alpha.vercel.app/login" class="cta-btn anim-up anim-up-d3">Get Started Free</a>
+    <div class="anim-up anim-up-d4" style="margin-top:16px;font-size:13px;color:var(--gray)">No credit card required &middot; HIPAA compliant &middot; Free tier available</div>
+  </div>
+
+</div>
+
+<div class="narration"><div class="narration-text" id="narrationText"></div></div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const totalSlides = slides.length;
+  let current = 0;
+  let autoTimer = null;
+  const AUTO_INTERVAL = 6000;
+
+  // Build dots
+  const dotsEl = document.getElementById('dots');
+  for (let i = 0; i < totalSlides; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.onclick = () => goSlide(i);
+    dotsEl.appendChild(d);
+  }
+
+  // Build waveform bars
+  const wf = document.getElementById('waveform');
+  for (let i = 0; i < 40; i++) {
+    const bar = document.createElement('div');
+    bar.className = 'wave-bar';
+    const h = 12 + Math.sin(i * 0.5) * 15 + Math.random() * 20;
+    bar.style.height = h + 'px';
+    bar.style.animationDelay = (i * 0.05) + 's';
+    wf.appendChild(bar);
+  }
+
+  function goSlide(n) {
+    if (n < 0 || n >= totalSlides) return;
+    slides[current].classList.remove('active');
+    current = n;
+    slides[current].classList.add('active');
+
+    // Update dots
+    document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === current));
+
+    // Update progress
+    document.getElementById('progress').style.width = ((current + 1) / totalSlides * 100) + '%';
+
+    // Update step label
+    document.getElementById('stepLabel').textContent = (current + 1) + ' / ' + totalSlides;
+
+    // Update narration
+    const narration = slides[current].getAttribute('data-narration');
+    document.getElementById('narrationText').innerHTML = narration;
+
+    // Reset auto-advance
+    resetAuto();
+  }
+
+  function resetAuto() {
+    clearInterval(autoTimer);
+    autoTimer = setInterval(() => {
+      if (current < totalSlides - 1) goSlide(current + 1);
+      else clearInterval(autoTimer);
+    }, AUTO_INTERVAL);
+  }
+
+  // Keyboard nav
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goSlide(current + 1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); goSlide(current - 1); }
+  });
+
+  // Init
+  goSlide(0);
+</script>
+</body>
+</html>
