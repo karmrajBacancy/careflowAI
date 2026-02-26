@@ -13,7 +13,11 @@ _model = None
 
 def get_whisper_model():
     """Lazy-load the Whisper model."""
-    from faster_whisper import WhisperModel
+    try:
+        from faster_whisper import WhisperModel
+    except ImportError:
+        logger.warning("faster-whisper not installed — transcription unavailable")
+        return None
     global _model
     if _model is None:
         logger.info(
@@ -45,6 +49,8 @@ def transcribe_audio(
         Dict with transcript, language, duration, and segments.
     """
     model = get_whisper_model()
+    if model is None:
+        raise RuntimeError("Whisper model not available — faster-whisper is not installed on this server")
     audio_path = Path(audio_path)
 
     if not audio_path.exists():
