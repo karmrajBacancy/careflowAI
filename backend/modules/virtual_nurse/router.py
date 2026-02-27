@@ -79,17 +79,47 @@ async def end_chat_session(session_id: str):
 # --- Patient Intake ---
 
 @router.post("/intake/start")
-async def start_intake_endpoint(request: IntakeStartRequest):
+async def start_intake_endpoint(
+    request: IntakeStartRequest,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """Start a new patient intake session."""
     result = start_intake(
         patient_id=request.patient_id,
         appointment_reason=request.appointment_reason,
     )
+
+    # Persist session and greeting to DB
+    hospital_id = get_hospital_id(current_user)
+    session = ChatSession(
+        id=result["session_id"],
+        session_type="intake",
+        status="active",
+        hospital_id=hospital_id,
+        patient_id=request.patient_id,
+    )
+    db.add(session)
+
+    greeting = ChatMessageRecord(
+        id=str(uuid.uuid4()),
+        session_id=result["session_id"],
+        role="assistant",
+        content=result["message"],
+    )
+    db.add(greeting)
+    db.commit()
+
     return result
 
 
 @router.post("/intake/{session_id}/message")
-async def intake_message_endpoint(session_id: str, request: ChatRequest):
+async def intake_message_endpoint(
+    session_id: str,
+    request: ChatRequest,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """Send a message in an intake session."""
     if not request.message.strip():
         raise HTTPException(400, "Message cannot be empty")
@@ -97,6 +127,24 @@ async def intake_message_endpoint(session_id: str, request: ChatRequest):
     result = process_intake_message(session_id, request.message)
     if "error" in result:
         raise HTTPException(404, result["error"])
+
+    # Save user and assistant messages
+    hospital_id = get_hospital_id(current_user)
+    _save_chat_message(db, session_id, "user", request.message, hospital_id=hospital_id)
+    _save_chat_message(db, session_id, "assistant", result["message"], hospital_id=hospital_id)
+
+    # If intake is complete, persist the summary
+    if result.get("complete"):
+        session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+        if session:
+            session.intake_data = result.get("intake_summary", {})
+            session.status = "completed"
+            db.commit()
+
+    # Handle escalation
+    if result.get("escalation"):
+        _mark_session_escalated(db, session_id, result.get("escalation_reason"))
+
     return result
 
 
@@ -234,6 +282,70 @@ async def get_active_sessions(
         }
         for s in sessions
     ]
+
+
+# --- Completed Intakes ---
+
+@router.get("/dashboard/completed-intakes")
+async def get_completed_intakes(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get completed intake sessions with summary data."""
+    hospital_id = get_hospital_id(current_user)
+
+    query = db.query(ChatSession).filter(
+        ChatSession.session_type == "intake",
+        ChatSession.status == "completed",
+    )
+    if hospital_id:
+        query = query.filter(ChatSession.hospital_id == hospital_id)
+
+    sessions = query.order_by(ChatSession.created_at.desc()).limit(50).all()
+    return [
+        {
+            "session_id": s.id,
+            "patient_id": s.patient_id,
+            "intake_data": s.intake_data or {},
+            "created_at": s.created_at.isoformat(),
+        }
+        for s in sessions
+    ]
+
+
+@router.get("/intake/{session_id}/detail")
+async def get_intake_detail(
+    session_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get full intake detail including all messages."""
+    session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+    if not session:
+        raise HTTPException(404, "Intake session not found")
+
+    messages = (
+        db.query(ChatMessageRecord)
+        .filter(ChatMessageRecord.session_id == session_id)
+        .order_by(ChatMessageRecord.timestamp)
+        .all()
+    )
+
+    return {
+        "session_id": session.id,
+        "patient_id": session.patient_id,
+        "status": session.status,
+        "intake_data": session.intake_data or {},
+        "created_at": session.created_at.isoformat(),
+        "messages": [
+            {
+                "role": m.role,
+                "content": m.content,
+                "timestamp": m.timestamp.isoformat(),
+            }
+            for m in messages
+        ],
+    }
 
 
 # --- Helpers ---

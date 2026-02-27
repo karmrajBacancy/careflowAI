@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react'
-import { getEscalations, getActiveSessions } from '../utils/api'
+import { getEscalations, getActiveSessions, getCompletedIntakes, getIntakeDetail } from '../utils/api'
 
 export default function NurseDashboard() {
   const [escalations, setEscalations] = useState([])
   const [activeSessions, setActiveSessions] = useState([])
+  const [completedIntakes, setCompletedIntakes] = useState([])
+  const [expandedIntake, setExpandedIntake] = useState(null)
+  const [intakeDetail, setIntakeDetail] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -14,14 +17,32 @@ export default function NurseDashboard() {
 
   const loadData = async () => {
     try {
-      const [esc, active] = await Promise.all([
+      const [esc, active, intakes] = await Promise.all([
         getEscalations().catch(() => []),
         getActiveSessions().catch(() => []),
+        getCompletedIntakes().catch(() => []),
       ])
       setEscalations(esc)
       setActiveSessions(active)
+      setCompletedIntakes(intakes)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleViewIntake = async (sessionId) => {
+    if (expandedIntake === sessionId) {
+      setExpandedIntake(null)
+      setIntakeDetail(null)
+      return
+    }
+    try {
+      const detail = await getIntakeDetail(sessionId)
+      setIntakeDetail(detail)
+      setExpandedIntake(sessionId)
+    } catch {
+      setExpandedIntake(null)
+      setIntakeDetail(null)
     }
   }
 
@@ -129,7 +150,7 @@ export default function NurseDashboard() {
       </div>
 
       {/* Active Sessions */}
-      <div>
+      <div className="mb-8">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">Active Chat Sessions</h2>
         {activeSessions.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-100 shadow-card p-10 text-center text-gray-400">
@@ -169,6 +190,76 @@ export default function NurseDashboard() {
                         <span className="badge badge-red font-semibold">Escalated</span>
                       ) : (
                         <span className="badge badge-green font-semibold">Active</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Completed Intakes */}
+      <div>
+        <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <svg className="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          Completed Intakes
+        </h2>
+        {completedIntakes.length === 0 ? (
+          <div className="bg-white rounded-xl border border-gray-100 shadow-card p-10 text-center text-gray-400">
+            No completed intakes yet
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl border border-gray-100 shadow-card overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50/80">
+                <tr>
+                  <th className="text-left px-5 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Session</th>
+                  <th className="text-left px-5 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Chief Complaint</th>
+                  <th className="text-left px-5 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Date</th>
+                  <th className="text-left px-5 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {completedIntakes.map((intake, i) => (
+                  <tr key={intake.session_id} className="group">
+                    <td colSpan={4} className="p-0">
+                      <div
+                        className={`flex items-center px-5 py-3.5 cursor-pointer hover:bg-primary-50/30 transition-colors ${i % 2 === 1 ? 'bg-gray-50/30' : ''}`}
+                        onClick={() => handleViewIntake(intake.session_id)}
+                      >
+                        <div className="flex-1 font-mono text-xs text-gray-500">{intake.session_id.slice(0, 8)}...</div>
+                        <div className="flex-1 text-gray-700 truncate">
+                          {intake.intake_data?.chief_complaint || intake.intake_data?.reason_for_visit || '—'}
+                        </div>
+                        <div className="flex-1 text-gray-400 text-xs">{new Date(intake.created_at).toLocaleString()}</div>
+                        <div className="flex-shrink-0">
+                          <button className="btn-primary text-xs px-4 py-1.5">
+                            {expandedIntake === intake.session_id ? 'Hide' : 'View'}
+                          </button>
+                        </div>
+                      </div>
+                      {expandedIntake === intake.session_id && intakeDetail && (
+                        <div className="px-5 pb-5 bg-primary-50/20 border-t border-gray-100 animate-fade-in">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+                            {Object.entries(intakeDetail.intake_data || {}).map(([key, val]) => (
+                              <div key={key} className="bg-white rounded-lg p-3 border border-gray-100">
+                                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">
+                                  {key.replace(/_/g, ' ')}
+                                </p>
+                                <p className="text-sm text-gray-700">
+                                  {Array.isArray(val) ? val.join(', ') : String(val || '—')}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                          {Object.keys(intakeDetail.intake_data || {}).length === 0 && (
+                            <p className="text-sm text-gray-400 mt-4">No intake data recorded.</p>
+                          )}
+                        </div>
                       )}
                     </td>
                   </tr>

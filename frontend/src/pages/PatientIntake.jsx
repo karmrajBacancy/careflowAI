@@ -11,6 +11,15 @@ export default function PatientIntake() {
   const [intakeSummary, setIntakeSummary] = useState(null)
   const [reason, setReason] = useState('')
 
+  const handleNewIntake = () => {
+    setStarted(false)
+    setSessionId(null)
+    setMessages([])
+    setComplete(false)
+    setIntakeSummary(null)
+    setReason('')
+  }
+
   const handleStart = async () => {
     setIsLoading(true)
     try {
@@ -150,6 +159,12 @@ export default function PatientIntake() {
               </p>
             ))}
           </div>
+          <button
+            onClick={handleNewIntake}
+            className="mt-4 px-5 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg text-sm font-medium transition-colors"
+          >
+            Start New Intake
+          </button>
         </div>
       )}
 

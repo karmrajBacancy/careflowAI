@@ -108,6 +108,16 @@ export async function sendIntakeMessage(sessionId, message) {
   return res.data
 }
 
+export async function getCompletedIntakes() {
+  const res = await api.get('/nurse/dashboard/completed-intakes')
+  return res.data
+}
+
+export async function getIntakeDetail(sessionId) {
+  const res = await api.get(`/nurse/intake/${sessionId}/detail`)
+  return res.data
+}
+
 // --- Triage ---
 
 export async function assessTriage(symptoms, patientAge = null, patientSex = null, medicalHistory = [], currentMedications = []) {
