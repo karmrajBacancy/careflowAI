@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 import logging
-from modules.shared.claude_client import claude_client
+from modules.shared.claude_client import llm_client
 from modules.shared.safety import check_emergency, sanitize_response, should_escalate, EMERGENCY_RESPONSE, AI_DISCLOSURE
 
 logger = logging.getLogger(__name__)
@@ -60,7 +60,7 @@ def chat(
 
     # Call Claude with conversation history
     try:
-        response = claude_client.chat(message, history, system_prompt=system_prompt)
+        response = llm_client.chat(message, history, system_prompt=system_prompt)
         response = sanitize_response(response)
 
         # Prepend AI disclosure on first message

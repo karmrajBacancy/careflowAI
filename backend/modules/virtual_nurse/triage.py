@@ -3,7 +3,7 @@ from __future__ import annotations
 """ESI-based symptom triage engine powered by Claude."""
 
 import logging
-from modules.shared.claude_client import claude_client
+from modules.shared.claude_client import llm_client
 from modules.shared.models import TriageResult, ESILevel
 from modules.shared.safety import check_emergency, EMERGENCY_RESPONSE
 
@@ -56,8 +56,8 @@ def assess_triage(
     logger.info("Running triage assessment for symptoms: %s...", symptoms[:100])
 
     try:
-        raw_response = claude_client.triage(symptoms, patient_info)
-        data = claude_client.extract_json(raw_response)
+        raw_response = llm_client.triage(symptoms, patient_info)
+        data = llm_client.extract_json(raw_response)
 
         if not data:
             logger.warning("Could not parse triage response, defaulting to ESI-3")

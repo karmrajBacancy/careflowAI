@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 import logging
-from modules.shared.claude_client import claude_client
+from modules.shared.claude_client import llm_client
 from modules.shared.safety import check_emergency, EMERGENCY_RESPONSE
 
 logger = logging.getLogger(__name__)
@@ -85,7 +85,7 @@ def process_followup_message(session_id: str, message: str) -> dict:
         }
 
     try:
-        response = claude_client.followup_chat(
+        response = llm_client.followup_chat(
             message,
             session["history"],
             context=session["context"],

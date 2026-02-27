@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-"""Claude API wrapper with medical system prompts."""
+"""Groq API wrapper — drop-in replacement for ClaudeClient using Llama 3.3 70B."""
 
 import json
-import anthropic
+import logging
+from groq import Groq
 from config import settings
 from modules.shared.medical_prompts import (
     AMBIENT_DOCUMENTATION_SYSTEM,
@@ -15,14 +16,16 @@ from modules.shared.medical_prompts import (
     SOAP_NOTE_EXAMPLE,
 )
 
+logger = logging.getLogger(__name__)
 
-class ClaudeClient:
-    """Wrapper around the Anthropic Claude API for medical use cases."""
+
+class GroqClient:
+    """Wrapper around the Groq API for medical use cases (Llama 3.3 70B)."""
 
     def __init__(self):
-        self.client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
-        self.model = settings.CLAUDE_MODEL
-        self.max_tokens = settings.CLAUDE_MAX_TOKENS
+        self.client = Groq(api_key=settings.GROQ_API_KEY)
+        self.model = settings.GROQ_MODEL
+        self.max_tokens = settings.CLAUDE_MAX_TOKENS  # reuse same token limit
 
     def _call(
         self,
@@ -31,15 +34,15 @@ class ClaudeClient:
         max_tokens: int | None = None,
         temperature: float = 0.3,
     ) -> str:
-        """Make a Claude API call."""
-        response = self.client.messages.create(
+        """Make a Groq chat completion call."""
+        groq_messages = [{"role": "system", "content": system}] + messages
+        response = self.client.chat.completions.create(
             model=self.model,
+            messages=groq_messages,
             max_tokens=max_tokens or self.max_tokens,
             temperature=temperature,
-            system=system,
-            messages=messages,
         )
-        return response.content[0].text
+        return response.choices[0].message.content
 
     def generate_soap_note(self, transcript: str) -> str:
         """Generate a SOAP note from a clinical encounter transcript."""
@@ -95,7 +98,7 @@ class ClaudeClient:
 
     def triage(self, symptoms: str, patient_info: str = "") -> str:
         """Perform symptom triage."""
-        prompt = f"Assess the following patient:\n\n"
+        prompt = "Assess the following patient:\n\n"
         if patient_info:
             prompt += f"Patient info: {patient_info}\n\n"
         prompt += f"Symptoms: {symptoms}\n\nProvide triage assessment as JSON."
@@ -103,7 +106,7 @@ class ClaudeClient:
         return self._call(TRIAGE_SYSTEM, messages, temperature=0.2)
 
     def extract_json(self, text: str) -> dict:
-        """Extract JSON from Claude's response, handling markdown code blocks."""
+        """Extract JSON from LLM response, handling markdown code blocks."""
         # Try direct parse first
         try:
             return json.loads(text)
@@ -114,7 +117,6 @@ class ClaudeClient:
             start = text.find("```")
             end = text.rfind("```")
             block = text[start:end]
-            # Remove the opening ``` and optional language tag
             first_newline = block.find("\n")
             if first_newline != -1:
                 block = block[first_newline + 1:]
@@ -131,18 +133,3 @@ class ClaudeClient:
             except json.JSONDecodeError:
                 pass
         return {}
-
-
-def get_llm_client():
-    """Factory: return GroqClient or ClaudeClient based on LLM_PROVIDER setting."""
-    if settings.LLM_PROVIDER == "groq":
-        from modules.shared.groq_client import GroqClient
-        return GroqClient()
-    return ClaudeClient()
-
-
-# Singleton instance — used by all modules
-llm_client = get_llm_client()
-
-# Backward-compat alias
-claude_client = llm_client

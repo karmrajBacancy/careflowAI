@@ -3,7 +3,7 @@ from __future__ import annotations
 """Claude LLM-powered ICD-10/CPT code suggestions."""
 
 import logging
-from modules.shared.claude_client import claude_client
+from modules.shared.claude_client import llm_client
 from modules.shared.models import CodeSuggestionResponse, CodeSuggestion
 
 logger = logging.getLogger(__name__)
@@ -21,8 +21,8 @@ def suggest_codes(note_text: str, encounter_type: str = "office_visit") -> CodeS
     """
     logger.info("Suggesting codes for note (%d chars)", len(note_text))
 
-    raw_response = claude_client.suggest_codes(note_text, encounter_type)
-    data = claude_client.extract_json(raw_response)
+    raw_response = llm_client.suggest_codes(note_text, encounter_type)
+    data = llm_client.extract_json(raw_response)
 
     if not data:
         logger.warning("Could not parse code suggestions from Claude response")

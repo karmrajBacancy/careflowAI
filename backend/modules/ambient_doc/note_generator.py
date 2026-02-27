@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
-from modules.shared.claude_client import claude_client
+from modules.shared.claude_client import llm_client
 from modules.shared.models import SOAPNote
 
 logger = logging.getLogger(__name__)
@@ -21,7 +21,7 @@ def generate_note(transcript: str) -> SOAPNote:
     """
     logger.info("Generating SOAP note from transcript (%d chars)", len(transcript))
 
-    raw_text = claude_client.generate_soap_note(transcript)
+    raw_text = llm_client.generate_soap_note(transcript)
 
     note = parse_soap_note(raw_text)
     logger.info("SOAP note generated successfully")

@@ -12,10 +12,17 @@ class Settings:
     PROJECT_NAME: str = "CareFlow AI"
     VERSION: str = "0.1.0"
 
+    # LLM Provider ("groq" or "claude")
+    LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "groq")
+
     # Claude API
     ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
     CLAUDE_MODEL: str = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-20250514")
     CLAUDE_MAX_TOKENS: int = int(os.getenv("CLAUDE_MAX_TOKENS", "4096"))
+
+    # Groq API
+    GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
+    GROQ_MODEL: str = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 
     # Whisper
     WHISPER_MODEL_SIZE: str = os.getenv("WHISPER_MODEL_SIZE", "base")

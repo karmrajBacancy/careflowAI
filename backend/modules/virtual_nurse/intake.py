@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 import logging
-from modules.shared.claude_client import claude_client
+from modules.shared.claude_client import llm_client
 from modules.shared.safety import check_emergency, EMERGENCY_RESPONSE
 
 logger = logging.getLogger(__name__)
@@ -94,7 +94,7 @@ def process_intake_message(session_id: str, message: str) -> dict:
     history = session["history"]
 
     try:
-        response = claude_client.intake_chat(message, history)
+        response = llm_client.intake_chat(message, history)
 
         session["history"].append({"role": "user", "content": message})
         session["history"].append({"role": "assistant", "content": response})
@@ -154,8 +154,8 @@ def _generate_intake_summary(session: dict) -> dict:
     )
 
     try:
-        response = claude_client.chat(prompt, [], system_prompt="Extract structured data from the conversation. Return valid JSON only.")
-        return claude_client.extract_json(response)
+        response = llm_client.chat(prompt, [], system_prompt="Extract structured data from the conversation. Return valid JSON only.")
+        return llm_client.extract_json(response)
     except Exception:
         return {"raw_conversation": conversation}
 
